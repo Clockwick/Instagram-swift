@@ -160,6 +160,37 @@ class LoginViewController: UIViewController {
               let password = passwordField.text, !password.isEmpty, password.count >= 8 else {
             return
         }
+        
+        var username: String?
+        var email: String?
+        // Login functionality
+        if usernameEmail.contains("@"), usernameEmail.contains(".") {
+            // Email
+            email = usernameEmail
+        }
+        else {
+            // USername
+            username = usernameEmail
+        }
+        AuthManager.shared.loginUser(username: username, email: email, password: password) { success in
+            DispatchQueue.main.async {
+                if success {
+                    // User logged in
+                    self.dismiss(animated: true, completion: nil)
+                }
+                else {
+                    // Error occured
+                    let alert = UIAlertController(title: "Log In Error",
+                                                message: "We were unable to log you in.",
+                                                preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "Dismiss",
+                                                  style: .cancel,
+                                                  handler: nil))
+                    self.present(alert, animated: true)
+                }
+            }
+            
+        }
     }
     @objc private func didTapTermsButton() {
         guard let url = URL(string: "https://web.facebook.com/help/instagram/termsofuse?_rdc=1&_rdr") else {
@@ -177,7 +208,8 @@ class LoginViewController: UIViewController {
     }
     @objc private func didTapCreateAccountButton() {
         let vc = RegistrationViewController()
-        present(vc, animated: true)
+        vc.title = "Create Account"
+        present(UINavigationController(rootViewController: vc), animated: true)
     }
 
 }
