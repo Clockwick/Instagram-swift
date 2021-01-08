@@ -16,7 +16,7 @@ struct HomeFeedRenderViewModel {
 }
 
 class HomeViewController: UIViewController {
-
+    
     
     private var feedRenderModels = [HomeFeedRenderViewModel]()
     
@@ -32,22 +32,55 @@ class HomeViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        createMockModels()
         view.addSubview(tableView)
         tableView.delegate = self
         tableView.dataSource = self
+        
+    }
+    
+    private func createMockModels() {
+        let user = User(username: "joe",
+                        name: (first: "", last: ""),
+                        profilePhoto: URL(string: "https://www.google.co.th")!,
+                        birthDate: Date(),
+                        gender: .male,
+                        counts: UserCount(followers: 1, following: 1, posts:  1),
+                        joinDate: Date())
+        let post = UserPost(identifier: "",
+                            postType: .photo,
+                            thumbnailImage: URL(string: "https://www.google.co.th")!,
+                            postURL: URL(string: "https://www.google.co.th")!,
+                            caption: "nil",
+                            likeCount: [],
+                            comments: [],
+                            createdDate: Date(),
+                            taggedUser: [],
+                            owner: user)
+        
+        var comments = [PostComment]()
+        
+        for x in 0..<2 {
+            comments.append(PostComment(identifier: "\(x)", username: "@john", text: "This is the worst post I've seen", createdDate: Date(), likes: []))
+        }
+        for x in 0..<5 {
+            let viewModel = HomeFeedRenderViewModel(header: PostRenderViewModel(renderType: .header(provider: user)) ,
+                                                    post: PostRenderViewModel(renderType: .primaryContent(provider: post)),
+                                                    actions: PostRenderViewModel(renderType: .actions(provider: "")),
+                                                    comments: PostRenderViewModel(renderType: .comments(comments: comments)))
+            feedRenderModels.append(viewModel)
+        }
+        
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        tableView.frame = view.bounds
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        
-//        handleNotAuthenticated()
-        do {
-          try Auth.auth().signOut()
-        }
-        catch {
-            print("Failed ot sign out")
-        }
-        
+        //handleNotAuthenticated()
     }
     
     private func handleNotAuthenticated() {
@@ -61,21 +94,149 @@ class HomeViewController: UIViewController {
         }
     }
     
-
+    
 }
 
 extension HomeViewController: UITableViewDelegate, UITableViewDataSource {
+    func numberOfSections(in tableView: UITableView) -> Int {
+        return feedRenderModels.count * 4
+    }
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        let x = section
+        let model: HomeFeedRenderViewModel
+        if x == 0 {
+            model = feedRenderModels[0]
+        }
+        else {
+            let position = x % 4 == 0 ? x/4 : ((x - (x % 4)) / 4)
+            model = feedRenderModels[position]
+        }
+        
+        let subSection = x % 4
+        
+        if subSection == 0 {
+            // Header
+            return 1
+        }
+        else if subSection == 1 {
+            // post
+            
+            return 1
+        }
+        else if subSection == 2 {
+            // actions
+            return 1
+            
+        }
+        else if subSection == 3 {
+            //comments
+            let commentsModel = model.comments
+            switch commentsModel.renderType {
+            case .comments(let comments): return comments.count > 2 ? 2 : comments.count
+            case .header, .actions, .primaryContent: return 0
+                
+            }
+            
+        }
+        //        switch renderModels[section].renderType {
+        //        case.actions(_):return 1
+        //        case.comments(let comments): return comments.count > 4 ? 4 : comments.count
+        //        case.primaryContent(_):return 1
+        //        case.header(_):return 1
+        //        }
         return 0
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: IGFeedPostTableViewCell.identifier, for: indexPath) as! IGFeedPostTableViewCell
-        return cell
+        let x = indexPath.section
+        let model: HomeFeedRenderViewModel
+        if x == 0 {
+            model = feedRenderModels[0]
+        }
+        else {
+            let position = x % 4 == 0 ? x/4 : ((x - (x % 4)) / 4)
+            model = feedRenderModels[position]
+            
+        }
+        
+        let subSection = x % 4
+        
+        if subSection == 0 {
+            // Header
+            switch model.header.renderType {
+            case .header(let user):
+                let cell = tableView.dequeueReusableCell(withIdentifier: IGFeedPostHeaderTableViewCell.identifier, for: indexPath) as! IGFeedPostHeaderTableViewCell
+                return cell
+            case .comments, .actions, .primaryContent: return UITableViewCell()
+            }
+        }
+        else if subSection == 1 {
+            // post
+            switch model.post.renderType {
+            case.primaryContent(let post):
+                let cell = tableView.dequeueReusableCell(withIdentifier: IGFeedPostTableViewCell.identifier, for: indexPath) as! IGFeedPostTableViewCell
+                return cell
+            case .comments, .actions, .header: return UITableViewCell()
+            }
+        }
+        else if subSection == 2 {
+            // actions
+            switch model.actions.renderType {
+            case.actions(let actions):
+                let cell = tableView.dequeueReusableCell(withIdentifier: IGFeedPostActionTableViewCell.identifier, for: indexPath) as! IGFeedPostActionTableViewCell
+                return cell
+            case .comments, .primaryContent, .header: return UITableViewCell()
+            }
+            
+        }
+        else if subSection == 3 {
+            //comments
+            switch model.comments.renderType {
+            case .comments(let comments):
+                let cell = tableView.dequeueReusableCell(withIdentifier: IGFeedPostGeneralTableViewCell.identifier, for: indexPath) as! IGFeedPostGeneralTableViewCell
+                return cell
+            case .primaryContent, .actions, .header: return UITableViewCell()
+            }
+        }
+        return UITableViewCell()
+        
+        
+        
+    }
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+    }
+    
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        let subSection = indexPath.section % 4
+        if subSection == 0 {
+            // Header
+            return 70
+        }
+        else if subSection == 1 {
+            // Post
+            return tableView.width
+        }
+        else if subSection == 2 {
+            // ACtions (like/comment)
+            return 60
+        }
+        else if subSection == 3 {
+            // Comment row
+            return 50
+        }
+        return 0
+        
         
     }
     
-    func numberOfSections(in tableView: UITableView) -> Int {
-        return 0
+    func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
+        return UIView()
+    }
+    
+    func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
+        let subSection = section % 4
+        
+        return subSection == 3 ? 70 : 0
     }
 }
