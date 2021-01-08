@@ -56,6 +56,13 @@ final class NotificationViewController: UIViewController, UITableViewDelegate, U
     }
     
     private func fetchNotification() {
+        let user = User(username: "joe",
+                        name: (first: "", last: ""),
+                        profilePhoto: URL(string: "https://www.google.co.th")!,
+                        birthDate: Date(),
+                        gender: .male,
+                        counts: UserCount(followers: 1, following: 1, posts:  1),
+                        joinDate: Date())
         for x in 0...100 {
             let post = UserPost(identifier: "",
                                 postType: .photo,
@@ -65,17 +72,12 @@ final class NotificationViewController: UIViewController, UITableViewDelegate, U
                                 likeCount: [],
                                 comments: [],
                                 createdDate: Date(),
-                                taggedUser: [])
+                                taggedUser: [],
+                                owner: user)
             let model = UserNotification(type: x % 2 == 0 ? .like(post: post) : .follow(state: .not_following),
                                          text: "Hello world",
-                                         user: User(username: "joe",
-                                                    name: (first: "", last: ""),
-                                                    profilePhoto: URL(string: "https://www.google.co.th")!,
-                                                    birthDate: Date(),
-                                                    gender: .male,
-                                                    counts: UserCount(followers: 1, following: 1, posts:  1),
-                                                    joinDate: Date())
-            )
+                                         user: user)
+            
             models.append(model)
         }
         
@@ -94,7 +96,6 @@ final class NotificationViewController: UIViewController, UITableViewDelegate, U
         spinner.center = view.center
         
     }
-    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return models.count
     }
@@ -126,13 +127,24 @@ final class NotificationViewController: UIViewController, UITableViewDelegate, U
 
 extension NotificationViewController: NotificationLikeEventTableViewCellDelegate {
     func didTapRelatedPostButton(model: UserNotification) {
-        print("Tap post")
+        switch model.type {
+        case .like(let post):
+            let vc = PostViewController(model: post)
+            vc.title = post.postType.rawValue
+            vc.navigationItem.largeTitleDisplayMode = .never
+            navigationController?.pushViewController(vc, animated: true)
+            
+        case .follow(_):
+            fatalError("Dev Issue: Should never get called")
+        }
+        
     }
 }
 
 extension NotificationViewController: NotificationFollowEventTableViewCellDelegate {
     func didTapFollowUnFollowButton(model: UserNotification) {
         print("Tap button")
+        // Perform database update
     }
     
     
