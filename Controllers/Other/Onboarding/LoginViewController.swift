@@ -172,6 +172,7 @@ class LoginViewController: UIViewController {
             // USername
             username = usernameEmail
         }
+        
         AuthManager.shared.loginUser(username: username, email: email, password: password) { success in
             DispatchQueue.main.async {
                 if success {
@@ -189,7 +190,6 @@ class LoginViewController: UIViewController {
                     self.present(alert, animated: true)
                 }
             }
-            
         }
     }
     @objc private func didTapTermsButton() {
